@@ -1,64 +1,69 @@
 <?php
-// Set your OpenAI API key (consider using environment variables)
-$apiKey = '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';
 
-// Sanitize user input
-$userMessage = isset($_POST['userMessage']) ? htmlspecialchars($_POST['userMessage']) : '';
+// Get user message from the request
+$userMessage = isset($_POST['userMessage']) ? strtolower($_POST['userMessage']) : '';
 
 // Check if the user message is not empty
 if (!empty($userMessage)) {
-    // Prepare the prompt
-    $prompt = "User: $userMessage\nAssistant:";
+    // Check for greeting triggers
+    $assistantReply = getGreetingResponse($userMessage);
 
-    // Set the OpenAI GPT-3 API endpoint
-    $endpoint = 'https://api.openai.com/v1/completions';
-
-    // Set the model name and other parameters
-    $model = 'text-davinci-002';
-    $temperature = 0.7;
-    $maxTokens = 150;
-
-    // Prepare the cURL request
-    $ch = curl_init($endpoint);
-
-    $headers = [
-        'Content-Type: application/json',
-        'Authorization: Bearer ' . $apiKey,
-    ];
-
-    $data = [
-        'model' => $model,
-        'prompt' => $prompt,
-        'temperature' => $temperature,
-        'max_tokens' => $maxTokens,
-    ];
-
-    // Set cURL options
-    curl_setopt($ch, CURLOPT_POST, 1);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-
-    // Execute cURL request
-    $response = curl_exec($ch);
-
-    // Check for cURL and API response errors
-    if ($response === false) {
-        echo json_encode(['error' => 'cURL request failed.']);
-    } else {
-        // Decode and return the response as JSON
-        $responseData = json_decode($response, true);
-
-        if ($responseData === null || !isset($responseData['choices'][0]['text'])) {
-            echo json_encode(['error' => 'Invalid or unexpected API response.']);
-        } else {
-            echo json_encode(['assistantReply' => $responseData['choices'][0]['text']]);
-        }
-    }
-
-    // Close cURL session
-    curl_close($ch);
+    // Return the response as JSON
+    echo json_encode(['assistantReply' => $assistantReply]);
 } else {
     // Return an error message if the user message is empty
     echo json_encode(['error' => 'User message is empty.']);
+}
+
+// Function to check if the user message contains a greeting and return a response
+function getGreetingResponse($message) {
+    $greetings = [
+        'english' => ['hello'],
+        'spanish' => ['hola'],
+        'french' => ['bonjour'],
+        'german' => ['hallo'],
+        'chinese' => ['你好', 'nǐ hǎo'],
+        'arabic' => ['مرحبا', 'marhaban'],
+        'russian' => ['привет', 'privet'],
+        'hindi' => ['नमस्ते', 'namaste'],
+        'swahili' => ['hujambo'],
+        'greek' => ['γεια σας', 'gia sas'],
+        'japanese' => ['こんにちは', 'konnichiwa'],
+        'korean' => ['안녕하세요', 'annyeonghaseyo'],
+        'italian' => ['ciao'],
+        'portuguese' => ['olá'],
+    ];
+
+    foreach ($greetings as $language => $languageGreetings) {
+        foreach ($languageGreetings as $greeting) {
+            if (strpos($message, $greeting) !== false) {
+                return getGreetingResponseByLanguage($language);
+            }
+        }
+    }
+
+    // Default response
+    return 'I\'m not sure how to respond to that. Can you please try a different greeting?';
+}
+
+// Function to get a greeting response based on the language
+function getGreetingResponseByLanguage($language) {
+    $greetingResponses = [
+        'english' => 'Hello, how can I assist you?',
+        'spanish' => 'Hola, ¿cómo puedo ayudarte?',
+        'french' => 'Bonjour, comment puis-je vous aider?',
+        'german' => 'Hallo, wie kann ich Ihnen helfen?',
+        'chinese' => '你好，我能帮助你什么呢？',
+        'arabic' => 'مرحبا، كيف يمكنني مساعدتك؟',
+        'russian' => 'Привет, как я могу вам помочь?',
+        'hindi' => 'नमस्ते, मैं आपकी कैसे मदद कर सकता हूँ?',
+        'swahili' => 'Hujambo, nawezaje kusaidia?',
+        'greek' => 'Γεια σας, πώς μπορώ να σας βοηθήσω;',
+        'japanese' => 'こんにちは、どのようにお手伝いできますか？',
+        'korean' => '안녕하세요, 어떻게 도와 드릴까요?',
+        'italian' => 'Ciao, come posso aiutarti?',
+        'portuguese' => 'Olá, como posso ajudar você?',
+    ];
+
+    return $greetingResponses[$language] ?? 'Hello, how can I assist you?'; // Default to English if language not found
 }
