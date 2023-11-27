@@ -11,10 +11,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const takePictureBtn = document.getElementById('take-picture-btn');
 
     // Event listener for the logo container
-    logoContainer.addEventListener('click', startListening);
+    logoContainer.addEventListener('click', toggleListening);
 
-    // Greet user on page load
-    generateBotResponse('Hello! How can I assist you today?');
+    // Greet user on page load based on browser language
+    const browserLanguage = navigator.language.toLowerCase();
+    generateBotResponse(getGreetingResponseByLanguage(browserLanguage));
 
     // Toggle voice recognition
     function toggleListening() {
@@ -64,6 +65,39 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Process user commands
     function processUserCommand(userInput) {
+        const greetings = [
+            'hello',
+            'hi',
+            'hey',
+            'hola',
+            'bonjour',
+            'hallo',
+            '你好',
+            'nǐ hǎo',
+            'مرحبا',
+            'marhaban',
+            'привет',
+            'privet',
+            'नमस्ते',
+            'namaste',
+            'hujambo',
+            'γεια σας',
+            'gia sas',
+            'こんにちは',
+            'konnichiwa',
+            '안녕하세요',
+            'annyeonghaseyo',
+            'ciao',
+            'olá'
+        ];
+
+        for (const greeting of greetings) {
+            if (userInput.includes(greeting)) {
+                generateBotResponse(getGreetingResponseByLanguage(greeting));
+                return;
+            }
+        }
+
         const commands = {
             'take a picture': takePictureInNewTab,
             'stop listening': stopListening,
@@ -183,21 +217,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Generate bot response
     function generateBotResponse(userInput) {
-        fetch('chatbot.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ userMessage: userInput }),
-        })
-            .then(response => response.json())
-            .then(async data => {
-                const assistantReply = 'Virtual Agent: ' + data.assistantReply;
-                console.log(assistantReply);
-                await speak(assistantReply);
-                addChatMessage(assistantReply);
-            })
-            .catch(error => console.error('Error:', error));
+        addChatMessage(userInput);
+        speak(userInput);
     }
 
     // Speak the given message using a male voice
@@ -211,24 +232,23 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-// Get a male voice for speech synthesis
-async function getMaleVoice() {
-    return new Promise(resolve => {
-        let voices = speechSynthesis.getVoices();
+    // Get a male voice for speech synthesis
+    async function getMaleVoice() {
+        return new Promise(resolve => {
+            let voices = speechSynthesis.getVoices();
 
-        if (voices.length) {
-            const maleVoices = voices.filter(voice => voice.name.includes('Male') && voice.lang.includes('en'));
-            resolve(maleVoices[0] || voices[0]); // Fallback to any available voice if a male voice is not found
-        } else {
-            speechSynthesis.onvoiceschanged = () => {
-                voices = speechSynthesis.getVoices();
+            if (voices.length) {
                 const maleVoices = voices.filter(voice => voice.name.includes('Male') && voice.lang.includes('en'));
                 resolve(maleVoices[0] || voices[0]); // Fallback to any available voice if a male voice is not found
-            };
-        }
-    });
-}
-
+            } else {
+                speechSynthesis.onvoiceschanged = () => {
+                    voices = speechSynthesis.getVoices();
+                    const maleVoices = voices.filter(voice => voice.name.includes('Male') && voice.lang.includes('en'));
+                    resolve(maleVoices[0] || voices[0]); // Fallback to any available voice if a male voice is not found
+                };
+            }
+        });
+    }
 
     // Pause logo animation
     function pauseLogoAnimation() {
@@ -238,5 +258,36 @@ async function getMaleVoice() {
     // Resume logo animation
     function resumeLogoAnimation() {
         logoContainer.style.animationPlayState = 'running';
+    }
+
+    // Get the greeting response based on language
+    function getGreetingResponseByLanguage(language) {
+        const greetings = {
+            'hello': 'Hello! How can I assist you today?',
+            'hi': 'Hello! How can I assist you today?',
+            'hey': 'Hello! How can I assist you today?',
+            'hola': 'Hola, ¿cómo puedo ayudarte?',
+            'bonjour': 'Bonjour, comment puis-je vous aider?',
+            'hallo': 'Hallo, wie kann ich Ihnen helfen?',
+            '你好': '你好，我能帮助你什么呢？',
+            'nǐ hǎo': '你好，我能帮助你什么呢？',
+            'مرحبا': 'مرحبا، كيف يمكنني مساعدتك؟',
+            'marhaban': 'مرحبا، كيف يمكنني مساعدتك؟',
+            'привет': 'Привет, как я могу вам помочь?',
+            'privet': 'Привет, как я могу вам помочь?',
+            'नमस्ते': 'नमस्ते, मैं आपकी कैसे मदद कर सकता हूँ?',
+            'namaste': 'नमस्ते, मैं आपकी कैसे मदद कर सकता हूँ?',
+            'hujambo': 'Hujambo, nawezaje kusaidia?',
+            'γεια σας': 'Γεια σας, πώς μπορώ να σας βοηθήσω;',
+            'gia sas': 'Γεια σας, πώς μπορώ να σας βοηθήσω;',
+            'こんにちは': 'こんにちは、どのようにお手伝いできますか？',
+            'konnichiwa': 'こんにちは、どのようにお手伝いできますか？',
+            '안녕하세요': '안녕하세요, 어떻게 도와 드릴까요?',
+            'annyeonghaseyo': '안녕하세요, 어떻게 도와 드릴까요?',
+            'ciao': 'Ciao, come posso aiutarti?',
+            'olá': 'Olá, como posso ajudar você?'
+        };
+
+        return greetings[language] || greetings['hello'];
     }
 });
